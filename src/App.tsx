@@ -20,7 +20,8 @@ export default function App() {
     let mounted = true;
 
     async function fetchData() {
-      const res = await fetch(`/sec/submissions/CIK${CIK}.json`);
+      const base = import.meta.env.DEV ? "/sec" : "/api/sec";
+      const res = await fetch(`${base}/submissions/CIK${CIK}.json`);
       const json: any = await res.json();
       const recent = json?.filings?.recent ?? {};
 
