@@ -1,50 +1,33 @@
 import { useEffect, useState } from "react";
-import "./index.css";
-import FilingsList from "./components/FilingsList";
+import type { CoinTicker } from "./interface/Coin";
+import { CoinList } from "./components/CoinList";
 
-// Apple identifier
-const CIK = "0000320193";
-
-export default function App() {
-  const [items, setItems] = useState<
-    Array<{
-      accessionNumber: string;
-      filingDate: string;
-      form: string;
-      reportDate?: string;
-    }>
-  >([]);
+function App() {
+  const [coins, setCoins] = useState<CoinTicker[]>([]);
 
   useEffect(() => {
-    // guard so x set state after unmount
-    let mounted = true;
+    async function fetchData(): Promise<void> {
+      const rawData = await fetch("https://api.coinpaprika.com/v1/tickers?quotes=USD");
+      const results: CoinTicker[] = await rawData.json();
+      const top = results
+        .filter((d) => d.quotes?.USD && typeof d.rank === "number")
+        .sort((a, b) => a.rank - b.rank)
+        .slice(0, 25);
+      setCoins(top);
+    }
 
-    async function fetchData() {
-      const base = import.meta.env.DEV ? "/sec" : "/api/sec";
-      const res = await fetch(`${base}/submissions/CIK${CIK}.json`);
-      const json: any = await res.json();
-      const recent = json?.filings?.recent ?? {};
+    fetchData()
+      .then(() => console.log("Data fetched successfully"))
+      .catch((e: Error) => console.log("There was the error: " + e));
+  }, [coins.length]);
 
-      const rows =
-        // Map the columnar data into row objects (fallback to empty array if missing)
-        (recent.accessionNumber ?? []).map((acc: string, i: number) => ({
-          accessionNumber: acc,
-          filingDate: recent.filingDate?.[i] ?? "",
-          form: recent.form?.[i] ?? "",
-          reportDate: recent.reportDate?.[i],
-        })) ?? []; // safety net
-
-      if (mounted) setItems(rows.slice(0, 24));
-  }
-
-  fetchData();
-  return () => { mounted = false; };
-}, []);
 
   return (
     <main className="container">
-      <h1>Apple Inc. — Recent SEC Filings</h1>
-      <FilingsList items={items} />
+      <h1>Top Coins</h1>
+      <CoinList coins={coins} />
     </main>
   );
 }
+
+export default App;
