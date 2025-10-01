@@ -1,35 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./index.css";
+import FilingsList from "./components/FilingsList";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Apple identifier
+const CIK = "0000320193";
+
+export default function App() {
+  const [items, setItems] = useState<
+    Array<{
+      accessionNumber: string;
+      filingDate: string;
+      form: string;
+      reportDate?: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    // guard so x set state after unmount
+    let mounted = true;
+
+    async function fetchData() {
+      const res = await fetch(`/sec/submissions/CIK${CIK}.json`);
+      const json: any = await res.json();
+      const recent = json?.filings?.recent ?? {};
+
+      const rows =
+        // Map the columnar data into row objects (fallback to empty array if missing)
+        (recent.accessionNumber ?? []).map((acc: string, i: number) => ({
+          accessionNumber: acc,
+          filingDate: recent.filingDate?.[i] ?? "",
+          form: recent.form?.[i] ?? "",
+          reportDate: recent.reportDate?.[i],
+        })) ?? []; // safety net
+
+      if (mounted) setItems(rows.slice(0, 24));
+  }
+
+  fetchData();
+  return () => { mounted = false; };
+}, []);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <main className="container">
+      <h1>Apple Inc. — Recent SEC Filings</h1>
+      <FilingsList items={items} />
+    </main>
+  );
 }
-
-export default App
