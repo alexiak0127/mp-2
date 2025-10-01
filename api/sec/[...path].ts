@@ -33,7 +33,17 @@ export default async function handler(req: Request) { // Default export = the fu
   const rest = u.pathname.replace(/^\/api\/sec\//, ""); // Grab everything after /api/sec/ (the path to be forwarded)
   const target = `https://data.sec.gov/${rest}${u.search}`; // Build the upstream SEC URL
 
-  return fetch(target, {
-    headers: { "User-Agent": "MP-2 alexiak@bu.edu" },
+  const ua = "mp-2 alexiak@bu.edu";
+
+  const upstream = await fetch(target, {
+    headers: {
+      "User-Agent": ua,
+      "Accept": "application/json",
+    },
+  });
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { "content-type": "application/json" },
   });
 }
